@@ -1,0 +1,22 @@
+name: dixa_messenger_flutter_example
+description: "Demonstrates how to use the dixa_messenger_flutter plugin."
+publish_to: 'none'
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  dixa_messenger_flutter:
+
+    path: ../
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
