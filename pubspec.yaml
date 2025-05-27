@@ -1,7 +1,7 @@
 name: dixa_messenger_flutter
 description: "A new Flutter plugin project."
+publish_to: "none"
 version: 0.0.1
-homepage:
 
 environment:
   sdk: ^3.8.0

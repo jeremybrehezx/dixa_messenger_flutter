@@ -2,19 +2,24 @@ import Flutter
 import UIKit
 import DixaMessenger
 
+@MainActor
 public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
     private var instanceChannels: [String: FlutterMethodChannel] = [:]
+    private var registrar: FlutterPluginRegistrar?
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "dixa_messenger_flutter", binaryMessenger: registrar.messenger())
         let instance = DixaMessengerFlutterPlugin()
+        instance.registrar = registrar
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "createInstance":
-            createInstance(call, result: result)
+            Task {
+                await createInstance(call, result: result)
+            }
         case "removeInstance":
             removeInstance(call, result: result)
         default:
@@ -22,7 +27,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    private func createInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    private func createInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) async {
         guard let args = call.arguments as? [String: Any],
               let instanceName = args["instanceName"] as? String,
               let configMap = args["config"] as? [String: Any],
@@ -58,7 +63,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         }
         
         // Configure messenger
-        Messenger.configure(config)
+        await Messenger.configure(config)
         
         // Handle authentication
         if let authConfig = configMap["authentication"] as? [String: Any],
@@ -67,11 +72,11 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
             case "claimed":
                 if let username = authConfig["username"] as? String,
                    let email = authConfig["email"] as? String {
-                    Messenger.updateUserCredentials(username: username, email: email)
+                    await Messenger.updateUserCredentials(username: username, email: email)
                 }
             case "verified":
                 if let token = authConfig["verificationToken"] as? String {
-                    Messenger.verifyUser(token: token)
+                    await Messenger.verifyUser(with: token)
                 }
             default:
                 break
@@ -79,13 +84,20 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         }
         
         // Create instance-specific channel
+        guard let registrar = registrar else {
+            result(FlutterError(code: "NO_REGISTRAR", message: "No registrar available", details: nil))
+            return
+        }
+        
         let instanceChannel = FlutterMethodChannel(
             name: "dixa_messenger_flutter/\(instanceName)",
             binaryMessenger: registrar.messenger()
         )
         
         instanceChannel.setMethodCallHandler { [weak self] call, result in
-            self?.handleInstanceMethod(instanceName: instanceName, call: call, result: result)
+            Task {
+                await self?.handleInstanceMethod(instanceName: instanceName, call: call, result: result)
+            }
         }
         
         instanceChannels[instanceName] = instanceChannel
@@ -104,14 +116,15 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
     
-    private func handleInstanceMethod(instanceName: String, call: FlutterMethodCall, result: @escaping FlutterResult) {
+    private func handleInstanceMethod(instanceName: String, call: FlutterMethodCall, result: @escaping FlutterResult) async {
         switch call.method {
         case "openMessenger":
-            guard let viewController = UIApplication.shared.windows.first?.rootViewController else {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootViewController = windowScene.windows.first?.rootViewController else {
                 result(FlutterError(code: "NO_VIEW_CONTROLLER", message: "No root view controller", details: nil))
                 return
             }
-            Messenger.openMessenger(from: viewController, style: .fullScreen)
+            await Messenger.openMessenger(from: rootViewController, presentationStyle: .fullScreen)
             result(nil)
             
         case "updateUserCredentials":
@@ -121,7 +134,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
                 return
             }
-            Messenger.updateUserCredentials(username: username, email: email)
+            await Messenger.updateUserCredentials(username: username, email: email)
             result(nil)
             
         case "setVerificationToken":
@@ -130,19 +143,19 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
                 return
             }
-            Messenger.verifyUser(token: token)
+            await Messenger.verifyUser(with: token)
             result(nil)
             
         case "clearUserCredentials":
-            Messenger.clearUserCredentials()
+            await Messenger.clearUserCredentials()
             result(nil)
             
         case "clearVerificationToken":
-            Messenger.clearVerificationToken()
+            await Messenger.clearVerificationToken()
             result(nil)
             
         case "setUnreadMessagesCountListener":
-            Messenger.unreadMessagesCountListener { [weak self] count in
+            await Messenger.unreadMessagesCountListener { [weak self] count in
                 self?.instanceChannels[instanceName]?.invokeMethod("onUnreadCountChanged", arguments: ["count": count])
             }
             result(nil)
@@ -154,7 +167,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 result(FlutterError(code: "INVALID_ARGS", message: "Invalid token", details: nil))
                 return
             }
-            Messenger.pushNotification.register(deviceToken: tokenData)
+            await Messenger.pushNotification.register(with: tokenData)
             result(nil)
             
         default:

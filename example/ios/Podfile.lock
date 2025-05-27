@@ -1,0 +1,29 @@
+PODS:
+  - dixa_messenger_flutter (0.0.1):
+    - DixaMessengerKit (= 1.12.1)
+    - Flutter
+  - DixaMessengerKit (1.12.1)
+  - Flutter (1.0.0)
+
+DEPENDENCIES:
+  - dixa_messenger_flutter (from `.symlinks/plugins/dixa_messenger_flutter/ios`)
+  - Flutter (from `Flutter`)
+
+SPEC REPOS:
+  trunk:
+    - DixaMessengerKit
+
+EXTERNAL SOURCES:
+  dixa_messenger_flutter:
+    :path: ".symlinks/plugins/dixa_messenger_flutter/ios"
+  Flutter:
+    :path: Flutter
+
+SPEC CHECKSUMS:
+  dixa_messenger_flutter: e12dd41f668b80e96a06b9136ab2e1a3589b41ed
+  DixaMessengerKit: 4ab556fa1ab7fd3ba75fcf633063bebabc34f724
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+
+PODFILE CHECKSUM: 930bf287a1c3d4fec83bc67baf7a3becd52b31b0
+
+COCOAPODS: 1.16.2
