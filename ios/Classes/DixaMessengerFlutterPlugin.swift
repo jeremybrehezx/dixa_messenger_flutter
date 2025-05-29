@@ -2,6 +2,7 @@
 import UIKit
 import DixaMessenger
 
+@MainActor
 public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
     private var instanceChannels: [String: FlutterMethodChannel] = [:]
     private var instanceConfigs: [String: DixaConfiguration] = [:]
@@ -15,21 +16,18 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        switch call.method {
-        case "createInstance":
-            Task { @MainActor in
-                await createInstance(call, result: result)
+        Task { @MainActor in
+            switch call.method {
+            case "createInstance":
+                await self.createInstance(call, result: result)
+            case "removeInstance":
+                await self.removeInstance(call, result: result)
+            default:
+                result(FlutterMethodNotImplemented)
             }
-        case "removeInstance":
-            Task { @MainActor in
-                await removeInstance(call, result: result)
-            }
-        default:
-            result(FlutterMethodNotImplemented)
         }
     }
     
-    @MainActor
     private func createInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) async {
         guard let args = call.arguments as? [String: Any],
               let instanceName = args["instanceName"] as? String,
@@ -101,8 +99,9 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         )
         
         instanceChannel.setMethodCallHandler { [weak self] call, result in
+            guard let self = self else { return }
             Task { @MainActor in
-                await self?.handleInstanceMethod(instanceName: instanceName, call: call, result: result)
+                await self.handleInstanceMethod(instanceName: instanceName, call: call, result: result)
             }
         }
         
@@ -110,7 +109,6 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
     
-    @MainActor
     private func removeInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) async {
         guard let args = call.arguments as? [String: Any],
               let instanceName = args["instanceName"] as? String else {
@@ -124,7 +122,6 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
     
-    @MainActor
     private func handleInstanceMethod(instanceName: String, call: FlutterMethodCall, result: @escaping FlutterResult) async {
         // Ensure we have the correct configuration for this instance
         guard let config = instanceConfigs[instanceName] else {
