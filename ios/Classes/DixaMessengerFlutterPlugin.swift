@@ -2,16 +2,17 @@
 import UIKit
 import DixaMessenger
 
-@MainActor
 public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
-    private var instanceChannels: [String: FlutterMethodChannel] = [:]
-    private var instanceConfigs: [String: DixaConfiguration] = [:]
-    private var registrar: FlutterPluginRegistrar?
+    @MainActor private var instanceChannels: [String: FlutterMethodChannel] = [:]
+    @MainActor private var instanceConfigs: [String: DixaConfiguration] = [:]
+    @MainActor private var registrar: FlutterPluginRegistrar?
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "dixa_messenger_flutter", binaryMessenger: registrar.messenger())
         let instance = DixaMessengerFlutterPlugin()
-        instance.registrar = registrar
+        Task { @MainActor in
+            instance.registrar = registrar
+        }
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
@@ -28,6 +29,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         }
     }
     
+    @MainActor
     private func createInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) async {
         guard let args = call.arguments as? [String: Any],
               let instanceName = args["instanceName"] as? String,
@@ -109,6 +111,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
     
+    @MainActor
     private func removeInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) async {
         guard let args = call.arguments as? [String: Any],
               let instanceName = args["instanceName"] as? String else {
@@ -122,6 +125,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
     
+    @MainActor
     private func handleInstanceMethod(instanceName: String, call: FlutterMethodCall, result: @escaping FlutterResult) async {
         // Ensure we have the correct configuration for this instance
         guard let config = instanceConfigs[instanceName] else {
