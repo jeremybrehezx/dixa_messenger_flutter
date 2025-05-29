@@ -23,7 +23,9 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         case "removeInstance":
             removeInstance(call, result: result)
         default:
-            result(FlutterMethodNotImplemented)
+            DispatchQueue.main.async {
+                result(FlutterMethodNotImplemented)
+            }
         }
     }
     
@@ -186,7 +188,9 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
             result(nil)
             
         default:
-            result(FlutterMethodNotImplemented)
+            DispatchQueue.main.async {
+                result(FlutterMethodNotImplemented)
+            }
         }
     }
 }
