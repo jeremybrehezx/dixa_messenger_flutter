@@ -25,9 +25,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 await removeInstance(call, result: result)
             }
         default:
-            DispatchQueue.main.async {
-                result(FlutterMethodNotImplemented)
-            }
+            result(FlutterMethodNotImplemented)
         }
     }
     
@@ -103,7 +101,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         )
         
         instanceChannel.setMethodCallHandler { [weak self] call, result in
-            Task {
+            Task { @MainActor in
                 await self?.handleInstanceMethod(instanceName: instanceName, call: call, result: result)
             }
         }
@@ -176,7 +174,9 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
             
         case "setUnreadMessagesCountListener":
             await Messenger.unreadMessagesCountListener { [weak self] count in
-                self?.instanceChannels[instanceName]?.invokeMethod("onUnreadCountChanged", arguments: ["count": count])
+                Task { @MainActor in
+                    self?.instanceChannels[instanceName]?.invokeMethod("onUnreadCountChanged", arguments: ["count": count])
+                }
             }
             result(nil)
             
@@ -191,9 +191,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
             result(nil)
             
         default:
-            DispatchQueue.main.async {
-                result(FlutterMethodNotImplemented)
-            }
+            result(FlutterMethodNotImplemented)
         }
     }
 }
