@@ -25,7 +25,10 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 await removeInstance(call, result: result)
             }
         default:
-            result(FlutterMethodNotImplemented)
+            // Use MainActor to ensure main thread execution
+            Task { @MainActor in
+                result(FlutterMethodNotImplemented)
+            }
         }
     }
     
@@ -191,6 +194,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
             result(nil)
             
         default:
+            // Since we're already in a @MainActor context, we can safely access FlutterMethodNotImplemented
             result(FlutterMethodNotImplemented)
         }
     }
