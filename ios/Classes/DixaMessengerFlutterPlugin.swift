@@ -2,7 +2,6 @@ import Flutter
 import UIKit
 import DixaMessenger
 
-@MainActor
 public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
     private var instanceChannels: [String: FlutterMethodChannel] = [:]
     private var instanceConfigs: [String: DixaConfiguration] = [:]
@@ -24,7 +23,9 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 await createInstance(call, result: result)
             }
         case "removeInstance":
-            removeInstance(call, result: result)
+            Task { @MainActor in
+                await removeInstance(call, result: result)
+            }
         default:
             result(methodNotImplemented)
         }
@@ -111,7 +112,8 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         result(nil)
     }
     
-    private func removeInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    @MainActor
+    private func removeInstance(_ call: FlutterMethodCall, result: @escaping FlutterResult) async {
         guard let args = call.arguments as? [String: Any],
               let instanceName = args["instanceName"] as? String else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
