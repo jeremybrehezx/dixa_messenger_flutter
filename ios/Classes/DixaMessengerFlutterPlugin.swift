@@ -15,8 +15,6 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        let methodNotImplemented = FlutterMethodNotImplemented
-        
         switch call.method {
         case "createInstance":
             Task { @MainActor in
@@ -27,7 +25,9 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 await removeInstance(call, result: result)
             }
         default:
-            result(methodNotImplemented)
+            DispatchQueue.main.async {
+                result(FlutterMethodNotImplemented)
+            }
         }
     }
     
@@ -128,8 +128,6 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
     
     @MainActor
     private func handleInstanceMethod(instanceName: String, call: FlutterMethodCall, result: @escaping FlutterResult) async {
-        let methodNotImplemented = FlutterMethodNotImplemented
-        
         // Ensure we have the correct configuration for this instance
         guard let config = instanceConfigs[instanceName] else {
             result(FlutterError(code: "NO_CONFIG", message: "No configuration found for instance", details: nil))
@@ -193,7 +191,9 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
             result(nil)
             
         default:
-            result(methodNotImplemented)
+            DispatchQueue.main.async {
+                result(FlutterMethodNotImplemented)
+            }
         }
     }
 }
