@@ -1,4 +1,4 @@
-@preconcurrency import Flutter
+import Flutter
 import UIKit
 import DixaMessenger
 
