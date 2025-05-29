@@ -5,6 +5,7 @@ import DixaMessenger
 @MainActor
 public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
     private var instanceChannels: [String: FlutterMethodChannel] = [:]
+    private var instanceConfigs: [String: DixaConfiguration] = [:]
     private var registrar: FlutterPluginRegistrar?
     
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -53,7 +54,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         
         // Set push environment
         if let pushEnvStr = configMap["pushEnvironment"] as? String {
-            let pushEnv: PushEnvironment = pushEnvStr == "sandbox" ? .sandbox : .production
+            let pushEnv: DixaConfiguration.PushEnvironment = pushEnvStr == "sandbox" ? .sandbox : .production
             config = config.pushEnvironment(pushEnv)
         }
         
@@ -62,7 +63,10 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
             config = config.supportedLanguages(supportedLanguages)
         }
         
-        // Configure messenger
+        // Store configuration for this instance
+        instanceConfigs[instanceName] = config
+        
+        // Configure messenger for this instance
         await Messenger.configure(config)
         
         // Handle authentication
@@ -113,10 +117,20 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
         
         instanceChannels[instanceName]?.setMethodCallHandler(nil)
         instanceChannels.removeValue(forKey: instanceName)
+        instanceConfigs.removeValue(forKey: instanceName)
         result(nil)
     }
     
     private func handleInstanceMethod(instanceName: String, call: FlutterMethodCall, result: @escaping FlutterResult) async {
+        // Ensure we have the correct configuration for this instance
+        guard let config = instanceConfigs[instanceName] else {
+            result(FlutterError(code: "NO_CONFIG", message: "No configuration found for instance", details: nil))
+            return
+        }
+        
+        // Reconfigure messenger with the correct configuration
+        await Messenger.configure(config)
+        
         switch call.method {
         case "openMessenger":
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -124,7 +138,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 result(FlutterError(code: "NO_VIEW_CONTROLLER", message: "No root view controller", details: nil))
                 return
             }
-            await Messenger.openMessenger(from: rootViewController, presentationStyle: .fullScreen)
+            await Messenger.openMessenger(from: rootViewController)
             result(nil)
             
         case "updateUserCredentials":
@@ -167,7 +181,7 @@ public class DixaMessengerFlutterPlugin: NSObject, FlutterPlugin {
                 result(FlutterError(code: "INVALID_ARGS", message: "Invalid token", details: nil))
                 return
             }
-            await Messenger.pushNotification.register(with: tokenData)
+            await Messenger.pushNotification.register(deviceToken: tokenData)
             result(nil)
             
         default:
